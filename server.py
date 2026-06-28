@@ -46,7 +46,7 @@ def mute(secret: str):
 @app.get("/launch")
 def launch(secret: str, path: str):
     check_secret(secret)
-    subprocess.Popen(path, shell=True)
+    subprocess.Popen(f'start "" "{path}"', shell=True)
     return {"status": f"launched {path}"}
 
 if __name__ == "__main__":
