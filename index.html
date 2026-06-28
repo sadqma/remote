@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PC Remote">
+  <title>PC Remote</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0f0f14;
+      color: #e8e6e0;
+      font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+      padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px);
+      min-height: 100dvh;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 24px;
+      padding-top: 12px;
+    }
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #3fc87a;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .dot.offline { background: #e05050; animation: none; }
+    h1 { font-size: 18px; font-weight: 600; }
+    .ip-badge {
+      margin-left: auto;
+      font-size: 12px;
+      color: #555;
+      cursor: pointer;
+    }
+    .section-label {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 10px;
+      margin-top: 20px;
+    }
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .cmd-btn {
+      border-radius: 16px;
+      padding: 18px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      transition: transform .1s, opacity .1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .cmd-btn:active { transform: scale(.95); opacity: .7; }
+    .cmd-btn .icon { font-size: 26px; }
+    .danger  { background: #2a1a1a; color: #e07070; border: 1px solid #5a1d1d; }
+    .primary { background: #141e2e; color: #70a8e0; border: 1px solid #1d3a5e; }
+    .neutral { background: #1a1a22; color: #aaa;    border: 1px solid #2e2e3e; }
+    .success { background: #122018; color: #70c890; border: 1px solid #1e4028; }
+    .game-btn {
+      width: 100%;
+      background: #1a1428;
+      border: 1px solid #3a2a5e;
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      margin-bottom: 10px;
+      -webkit-tap-highlight-color: transparent;
+      font-family: inherit;
+      transition: transform .1s, opacity .1s;
+    }
+    .game-btn:active { transform: scale(.97); opacity: .7; }
+    .game-icon { font-size: 22px; }
+    .game-info { text-align: left; }
+    .game-name { font-size: 14px; color: #c0b0e8; font-weight: 500; }
+    .game-path { font-size: 11px; color: #665577; margin-top: 2px; }
+    .add-btn {
+      border: 1.5px dashed #2a2a3a;
+      border-radius: 16px;
+      padding: 14px;
+      text-align: center;
+      color: #444;
+      font-size: 13px;
+      cursor: pointer;
+      width: 100%;
+      background: none;
+      font-family: inherit;
+    }
+    .toast {
+      position: fixed;
+      bottom: calc(env(safe-area-inset-bottom, 16px) + 16px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(40,40,50,0.95);
+      color: #e0e0f0;
+      font-size: 13px;
+      padding: 8px 18px;
+      border-radius: 20px;
+      opacity: 0;
+      transition: opacity .3s;
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 99;
+    }
+    .toast.show { opacity: 1; }
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.7);
+      z-index: 100;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: #1a1a22;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px 32px;
+      width: 100%;
+      max-width: 480px;
+    }
+    .modal h2 { font-size: 16px; margin-bottom: 16px; }
+    .modal input {
+      width: 100%;
+      background: #0f0f14;
+      border: 1px solid #2e2e3e;
+      border-radius: 10px;
+      padding: 10px 14px;
+      color: #e8e6e0;
+      font-size: 14px;
+      font-family: inherit;
+      margin-bottom: 10px;
+    }
+    .modal-btns { display: flex; gap: 10px; margin-top: 4px; }
+    .modal-btns button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-save { background: #1d3a5e; color: #70a8e0; }
+    .btn-cancel { background: #1a1a22; color: #666; border: 1px solid #2e2e3e; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="dot" id="statusDot"></div>
+  <h1>PC Remote</h1>
+  <span class="ip-badge" id="ipBadge" onclick="openSettings()">⚙ настройки</span>
+</header>
+
+<div class="section-label">Питание</div>
+<div class="btn-grid">
+  <button class="cmd-btn danger" onclick="send('/shutdown')">
+    <span class="icon">⏻</span>Выключить
+  </button>
+  <button class="cmd-btn primary" onclick="send('/sleep')">
+    <span class="icon">🌙</span>Сон
+  </button>
+</div>
+
+<div class="section-label">Медиа</div>
+<div class="btn-grid">
+  <button class="cmd-btn neutral" onclick="send('/pause')">
+    <span class="icon">⏯</span>Play / Pause
+  </button>
+  <button class="cmd-btn neutral" onclick="send('/mute')">
+    <span class="icon">🔇</span>Mute
+  </button>
+</div>
+
+<div class="section-label">Быстрый запуск</div>
+<div id="launchList"></div>
+<button class="add-btn" onclick="openAddGame()">+ Добавить ярлык</button>
+
+<div class="toast" id="toast"></div>
+
+<!-- Модалка настроек -->
+<div class="modal-bg" id="settingsModal">
+  <div class="modal">
+    <h2>Настройки</h2>
+    <input id="ipInput" placeholder="IP компьютера (напр. 192.168.1.5)" type="text">
+    <input id="portInput" placeholder="Порт (по умолчанию 8765)" type="number">
+    <input id="secretInput" placeholder="Секретный ключ" type="password">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('settingsModal')">Отмена</button>
+      <button class="btn-save" onclick="saveSettings()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка добавления ярлыка -->
+<div class="modal-bg" id="addGameModal">
+  <div class="modal">
+    <h2>Новый ярлык</h2>
+    <input id="gameName" placeholder="Название (напр. CS2)">
+    <input id="gamePath" placeholder="Путь или steam://rungameid/730">
+    <input id="gameIcon" placeholder="Иконка (эмодзи, напр. 🎮)">
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('addGameModal')">Отмена</button>
+      <button class="btn-save" onclick="saveGame()">Добавить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let cfg = JSON.parse(localStorage.getItem('pcremote_cfg') || '{}');
+  cfg.ip     = cfg.ip     || '';
+  cfg.port   = cfg.port   || '8765';
+  cfg.secret = cfg.secret || 'nikita2004';
+  let games  = JSON.parse(localStorage.getItem('pcremote_games') || '[]');
+
+  function baseUrl() {
+    return `http://${cfg.ip}:${cfg.port}`;
+  }
+
+  async function send(endpoint, params = {}) {
+    if (!cfg.ip) { showToast('Укажи IP в настройках'); return; }
+    params.secret = cfg.secret;
+    const qs = new URLSearchParams(params).toString();
+    try {
+      const r = await fetch(`${baseUrl()}${endpoint}?${qs}`, { signal: AbortSignal.timeout(4000) });
+      const d = await r.json();
+      showToast(d.status || 'OK');
+    } catch (e) {
+      showToast('Ошибка: ' + (e.message || 'недоступен'));
+    }
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
+  }
+
+  function renderGames() {
+    const el = document.getElementById('launchList');
+    el.innerHTML = '';
+    games.forEach((g, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'game-btn';
+      btn.innerHTML = `<span class="game-icon">${g.icon || '🎮'}</span>
+        <div class="game-info">
+          <div class="game-name">${g.name}</div>
+          <div class="game-path">${g.path}</div>
+        </div>`;
+      btn.onclick = () => send('/launch', { path: g.path });
+      el.appendChild(btn);
+    });
+  }
+
+  function openSettings() {
+    document.getElementById('ipInput').value    = cfg.ip;
+    document.getElementById('portInput').value  = cfg.port;
+    document.getElementById('secretInput').value = cfg.secret;
+    document.getElementById('settingsModal').classList.add('open');
+  }
+
+  function saveSettings() {
+    cfg.ip     = document.getElementById('ipInput').value.trim();
+    cfg.port   = document.getElementById('portInput').value.trim() || '8765';
+    cfg.secret = document.getElementById('secretInput').value.trim();
+    localStorage.setItem('pcremote_cfg', JSON.stringify(cfg));
+    closeModal('settingsModal');
+    showToast('Сохранено');
+    checkStatus();
+  }
+
+  function openAddGame() {
+    document.getElementById('gameName').value = '';
+    document.getElementById('gamePath').value = '';
+    document.getElementById('gameIcon').value = '';
+    document.getElementById('addGameModal').classList.add('open');
+  }
+
+  function saveGame() {
+    const name = document.getElementById('gameName').value.trim();
+    const path = document.getElementById('gamePath').value.trim();
+    const icon = document.getElementById('gameIcon').value.trim() || '🎮';
+    if (!name || !path) { showToast('Заполни все поля'); return; }
+    games.push({ name, path, icon });
+    localStorage.setItem('pcremote_games', JSON.stringify(games));
+    renderGames();
+    closeModal('addGameModal');
+    showToast('Добавлено');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  async function checkStatus() {
+    const dot = document.getElementById('statusDot');
+    const badge = document.getElementById('ipBadge');
+    if (!cfg.ip) {
+      dot.className = 'dot offline';
+      badge.textContent = '⚙ настройки';
+      return;
+    }
+    badge.textContent = cfg.ip;
+    try {
+      await fetch(`${baseUrl()}/pause?secret=ping_check`, { signal: AbortSignal.timeout(2000) });
+      dot.className = 'dot';
+    } catch {
+      dot.className = 'dot offline';
+    }
+  }
+
+  renderGames();
+  checkStatus();
+  setInterval(checkStatus, 15000);
+</script>
+</body>
+</html>
