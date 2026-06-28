@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 import subprocess
 import pyautogui
 import uvicorn
+import pyperclip
+import ctypes
 
 app = FastAPI()
 
@@ -48,6 +50,40 @@ def launch(secret: str, path: str):
     check_secret(secret)
     subprocess.Popen(f'start "" "{path}"', shell=True)
     return {"status": f"launched {path}"}
+
+@app.get("/volume_up")
+def volume_up(secret: str):
+    check_secret(secret)
+    for _ in range(4):
+        pyautogui.press("volumeup")
+    return {"status": "volume up"}
+
+@app.get("/volume_down")
+def volume_down(secret: str):
+    check_secret(secret)
+    for _ in range(4):
+        pyautogui.press("volumedown")
+    return {"status": "volume down"}
+
+@app.get("/lock")
+def lock(secret: str):
+    check_secret(secret)
+    subprocess.run("rundll32.exe user32.dll,LockWorkStation", shell=True, capture_output=True, text=True)
+    return {"status": "locked"}
+
+@app.get("/type")
+def type_text(secret: str, text: str):
+    check_secret(secret)
+    import pyperclip
+    pyperclip.copy(text)
+    pyautogui.hotkey('ctrl', 'v')
+    return {"status": "typed"}
+
+@app.get("/test_lock")
+def test_lock(secret: str):
+    check_secret(secret)
+    result = subprocess.run("rundll32.exe user32.dll,LockWorkStation", shell=True, capture_output=True, text=True)
+    return {"returncode": result.returncode, "stdout": result.stdout, "stderr": result.stderr}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8765)

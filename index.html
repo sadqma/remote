@@ -71,7 +71,6 @@
     .danger  { background: #2a1a1a; color: #e07070; border: 1px solid #5a1d1d; }
     .primary { background: #141e2e; color: #70a8e0; border: 1px solid #1d3a5e; }
     .neutral { background: #1a1a22; color: #aaa;    border: 1px solid #2e2e3e; }
-    .success { background: #122018; color: #70c890; border: 1px solid #1e4028; }
     .game-btn {
       width: 100%;
       background: #1a1428;
@@ -89,9 +88,7 @@
     }
     .game-btn:active { transform: scale(.97); opacity: .7; }
     .game-icon { font-size: 22px; }
-    .game-info { text-align: left; }
     .game-name { font-size: 14px; color: #c0b0e8; font-weight: 500; }
-    .game-path { font-size: 11px; color: #665577; margin-top: 2px; }
     .add-btn {
       border: 1.5px dashed #2a2a3a;
       border-radius: 16px;
@@ -178,8 +175,8 @@
   <button class="cmd-btn danger" onclick="send('/shutdown')">
     <span class="icon">⏻</span>Выключить
   </button>
-  <button class="cmd-btn primary" onclick="send('/sleep')">
-    <span class="icon">🌙</span>Сон
+  <button class="cmd-btn primary" onclick="send('/locl')">
+    <span class="icon">🔒</span>Блокировка
   </button>
 </div>
 
@@ -191,6 +188,22 @@
   <button class="cmd-btn neutral" onclick="send('/mute')">
     <span class="icon">🔇</span>Mute
   </button>
+  <button class="cmd-btn neutral" onclick="send('/volume_down')">
+    <span class="icon">🔉</span>Тише
+  </button>
+  <button class="cmd-btn neutral" onclick="send('/volume_up')">
+    <span class="icon">🔊</span>Громче
+  </button>
+</div>
+
+<div class="section-label">Текст на ПК</div>
+<div style="display:flex;gap:8px;">
+  <input id="typeInput" placeholder="Введи текст..." 
+    style="flex:1;background:#1a1a22;border:1px solid #2e2e3e;border-radius:12px;padding:10px 14px;color:#e8e6e0;font-size:14px;font-family:inherit;">
+  <button class="cmd-btn neutral" style="padding:10px 16px;border-radius:12px;" 
+    onclick="send('/type', {text: document.getElementById('typeInput').value})">
+    <span class="icon">⌨️</span>
+  </button>
 </div>
 
 <div class="section-label">Быстрый запуск</div>
@@ -199,14 +212,12 @@
   <span class="game-icon">🌊</span>
   <div class="game-info">
     <div class="game-name">Wuthering Waves</div>
-    <div class="game-path">"C:\\\\Steam\\\\steamapps\\\\common\\\\Wuthering Waves\\\\Wuthering Waves.exe"</div>
   </div>
 </button>
 <button class="add-btn" onclick="openAddGame()">+ Добавить ярлык</button>
 
 <div class="toast" id="toast"></div>
 
-<!-- Модалка настроек -->
 <div class="modal-bg" id="settingsModal">
   <div class="modal">
     <h2>Настройки</h2>
@@ -220,36 +231,41 @@
   </div>
 </div>
 
-<!-- Модалка добавления ярлыка -->
 <div class="modal-bg" id="addGameModal">
   <div class="modal">
     <h2>Новый ярлык</h2>
-    <input id="gameName" placeholder="Название (напр. Wuthering Waves)">
-    <input id="gamePath" placeholder="Путь или steam://rungameid/2358720">
+    <input id="gameName" placeholder="Название (напр. CS2)">
+    <input id="gamePath" placeholder="Путь или steam://rungameid/730">
     <input id="gameIcon" placeholder="Иконка (эмодзи, напр. 🎮)">
     <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('addGameModal')">Отмена</button>
+      <button class="btn-save" onclick="saveGame()">Добавить</button>
     </div>
   </div>
 </div>
 
 <script>
-  let cfg = JSON.parse(localStorage.getItem('pcremote_cfg') || '{}');
+  var cfgRaw = localStorage.getItem('pcremote_cfg');
+  var cfg = cfgRaw ? JSON.parse(cfgRaw) : {};
   cfg.ip     = cfg.ip     || '';
   cfg.port   = cfg.port   || '8765';
   cfg.secret = cfg.secret || 'nikita2004';
-  let games  = JSON.parse(localStorage.getItem('pcremote_games') || '[]');
+
+  var gamesRaw = localStorage.getItem('pcremote_games');
+  var games = gamesRaw ? JSON.parse(gamesRaw) : [];
 
   function baseUrl() {
-    return `http://${cfg.ip}:${cfg.port}`;
+    return 'http://' + cfg.ip + ':' + cfg.port;
   }
 
-  async function send(endpoint, params = {}) {
+  async function send(endpoint, params) {
+    if (!params) params = {};
     if (!cfg.ip) { showToast('Укажи IP в настройках'); return; }
     params.secret = cfg.secret;
-    const qs = new URLSearchParams(params).toString();
+    var qs = new URLSearchParams(params).toString();
     try {
-      const r = await fetch(`${baseUrl()}${endpoint}?${qs}`, { signal: AbortSignal.timeout(4000) });
-      const d = await r.json();
+      var r = await fetch(baseUrl() + endpoint + '?' + qs, { signal: AbortSignal.timeout(4000) });
+      var d = await r.json();
       showToast(d.status || 'OK');
     } catch (e) {
       showToast('Ошибка: ' + (e.message || 'недоступен'));
@@ -257,31 +273,47 @@
   }
 
   function showToast(msg) {
-    const t = document.getElementById('toast');
+    var t = document.getElementById('toast');
     t.textContent = msg;
     t.classList.add('show');
-    setTimeout(() => t.classList.remove('show'), 2000);
+    setTimeout(function() { t.classList.remove('show'); }, 2000);
   }
 
   function renderGames() {
-    const el = document.getElementById('launchList');
+    var el = document.getElementById('launchList');
     el.innerHTML = '';
-    games.forEach((g, i) => {
-      const btn = document.createElement('button');
+    games.forEach(function(g, i) {
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:10px;';
+      
+      var btn = document.createElement('button');
       btn.className = 'game-btn';
-      btn.innerHTML = `<span class="game-icon">${g.icon || '🎮'}</span>
-        <div class="game-info">
-          <div class="game-name">${g.name}</div>
-          <div class="game-path">${g.path}</div>
-        </div>`;
-      btn.onclick = () => send('/launch', { path: g.path });
-      el.appendChild(btn);
+      btn.style.margin = '0';
+      btn.style.flex = '1';
+      btn.innerHTML = '<span class="game-icon">' + (g.icon || '🎮') + '</span>' +
+        '<div class="game-info"><div class="game-name">' + g.name + '</div></div>';
+      btn.onclick = function() { send('/launch', { path: g.path }); };
+
+      var del = document.createElement('button');
+      del.textContent = '✕';
+      del.style.cssText = 'background:#2a1a1a;border:1px solid #5a1d1d;color:#e07070;border-radius:12px;width:36px;height:36px;font-size:14px;cursor:pointer;flex-shrink:0;';
+      del.onclick = function() {
+        if (confirm('Удалить ' + g.name + '?')) {
+          games.splice(i, 1);
+          localStorage.setItem('pcremote_games', JSON.stringify(games));
+          renderGames();
+        }
+      };
+
+      wrap.appendChild(btn);
+      wrap.appendChild(del);
+      el.appendChild(wrap);
     });
   }
 
   function openSettings() {
-    document.getElementById('ipInput').value    = cfg.ip;
-    document.getElementById('portInput').value  = cfg.port;
+    document.getElementById('ipInput').value     = cfg.ip;
+    document.getElementById('portInput').value   = cfg.port;
     document.getElementById('secretInput').value = cfg.secret;
     document.getElementById('settingsModal').classList.add('open');
   }
@@ -304,11 +336,11 @@
   }
 
   function saveGame() {
-    const name = document.getElementById('gameName').value.trim();
-    const path = document.getElementById('gamePath').value.trim();
-    const icon = document.getElementById('gameIcon').value.trim() || '🎮';
+    var name = document.getElementById('gameName').value.trim();
+    var path = document.getElementById('gamePath').value.trim();
+    var icon = document.getElementById('gameIcon').value.trim() || '🎮';
     if (!name || !path) { showToast('Заполни все поля'); return; }
-    games.push({ name, path, icon });
+    games.push({ name: name, path: path, icon: icon });
     localStorage.setItem('pcremote_games', JSON.stringify(games));
     renderGames();
     closeModal('addGameModal');
@@ -320,18 +352,17 @@
   }
 
   async function checkStatus() {
-    const dot = document.getElementById('statusDot');
-    const badge = document.getElementById('ipBadge');
+    var dot   = document.getElementById('statusDot');
+    var badge = document.getElementById('ipBadge');
+    badge.textContent = '⚙ настройки';
     if (!cfg.ip) {
       dot.className = 'dot offline';
-      badge.textContent = '⚙ настройки';
       return;
     }
-    badge.textContent = 'Настройки';
     try {
-      await fetch(`${baseUrl()}/pause?secret=ping_check`, { signal: AbortSignal.timeout(2000) });
+      await fetch(baseUrl() + '/ping', { signal: AbortSignal.timeout(2000) });
       dot.className = 'dot';
-    } catch {
+    } catch (e) {
       dot.className = 'dot offline';
     }
   }
