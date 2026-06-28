@@ -195,6 +195,13 @@
 
 <div class="section-label">Быстрый запуск</div>
 <div id="launchList"></div>
+<button class="game-btn" onclick="send('/launch', {path: 'steam://rungameid/2358720'})">
+  <span class="game-icon">🌊</span>
+  <div class="game-info">
+    <div class="game-name">Wuthering Waves</div>
+    <div class="game-path">steam://rungameid/2358720</div>
+  </div>
+</button>
 <button class="add-btn" onclick="openAddGame()">+ Добавить ярлык</button>
 
 <div class="toast" id="toast"></div>
@@ -217,12 +224,10 @@
 <div class="modal-bg" id="addGameModal">
   <div class="modal">
     <h2>Новый ярлык</h2>
-    <input id="gameName" placeholder="Название (напр. CS2)">
-    <input id="gamePath" placeholder="Путь или steam://rungameid/730">
+    <input id="gameName" placeholder="Название (напр. Wuthering Waves)">
+    <input id="gamePath" placeholder="Путь или steam://rungameid/2358720">
     <input id="gameIcon" placeholder="Иконка (эмодзи, напр. 🎮)">
     <div class="modal-btns">
-      <button class="btn-cancel" onclick="closeModal('addGameModal')">Отмена</button>
-      <button class="btn-save" onclick="saveGame()">Добавить</button>
     </div>
   </div>
 </div>
@@ -322,7 +327,7 @@
       badge.textContent = '⚙ настройки';
       return;
     }
-    badge.textContent = cfg.ip;
+    badge.textContent = 'Настройки';
     try {
       await fetch(`${baseUrl()}/pause?secret=ping_check`, { signal: AbortSignal.timeout(2000) });
       dot.className = 'dot';
