@@ -208,12 +208,21 @@
 
 <div class="section-label">Быстрый запуск</div>
 <div id="launchList"></div>
-<button class="game-btn" onclick="send('/launch', {path: 'C:\\Steam\\steamapps\\common\\Wuthering Waves\\Wuthering Waves.exe'})">
+
+<button class="game-btn" onclick="send('/launch', {path: '&quot;C:\\Steam\\steamapps\\common\\Wuthering Waves\\Wuthering Waves.exe&quot;'})">
   <span class="game-icon">🌊</span>
   <div class="game-info">
     <div class="game-name">Wuthering Waves</div>
   </div>
 </button>
+
+<button class="game-btn" onclick="send('/launch', {path: '&quot;C:\\Games\\Riot Games\\Riot Client\\RiotClientServices.exe&quot; --launch-product=valorant --launch-patchline=live'})">
+  <span class="game-icon">🔫</span>
+  <div class="game-info">
+    <div class="game-name">Valorant</div>
+  </div>
+</button>
+
 <button class="add-btn" onclick="openAddGame()">+ Добавить ярлык</button>
 
 <div class="toast" id="toast"></div>
